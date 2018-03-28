@@ -8,6 +8,7 @@ from frappe import _
 from frappe.utils import formatdate, getdate, cint, add_months, date_diff, add_days, flt
 from frappe.utils.xlsxutils import make_xlsx
 import requests
+from datetime import datetime
 
 
 @frappe.whitelist()
@@ -32,6 +33,7 @@ def send_wage_report():
             add_days(today(), -1)),
         attachments=attachments
     )
+
 
 def send_daily_att_report():
     custom_filter = {'date': add_days(today(), -1)}
@@ -251,260 +253,44 @@ def get_leave(emp, day):
     return leave
 
 
-# Default Attendance
-# @frappe.whitelist(allow_guest=True)
-# def attendance():
-#     userid = frappe.form_dict.get("userid")
-#     employee = frappe.db.get_value("Employee", {
-#         "biometric_id": userid})
-#     if employee:
-#             date = time.strftime("%Y-%m-%d", time.gmtime(
-#                 int(frappe.form_dict.get("att_time"))))
-#             name, company = frappe.db.get_value(
-#                 "Employee", employee, ["employee_name", "company"])
-#             attendance_id = frappe.db.get_value("Attendance", {
-#                 "employee": employee, "attendance_date": date})
-#             if attendance_id:
-#                 attendance = frappe.get_doc("Attendance", attendance_id)
-#                 out_time = time.strftime("%H:%M:%S", time.gmtime(
-#                     int(frappe.form_dict.get("att_time"))))
-#                 times = [out_time, attendance.in_time]
-#                 attendance.out_time = max(times)
-#                 attendance.in_time = min(times)
-#                 attendance.db_update()
-#             else:
-#                 attendance = frappe.new_doc("Attendance")
-#                 in_time = time.strftime("%H:%M:%S", time.gmtime(
-#                     int(frappe.form_dict.get("att_time"))))
-#                 attendance.update({
-#                     "employee": employee,
-#                     "employee_name": name,
-#                     "attendance_date": date,
-#                     "status": "Present",
-#                     "in_time": in_time,
-#                     "company": company
-#                 })
-#             attendance.save(ignore_permissions=True)
-#             attendance.submit()
-#             frappe.db.commit()
-#     frappe.response.type = "text"
-#     return "ok"
-
-# Shift Based need to work out
-# @frappe.whitelist(allow_guest=True)
-# def attendance():
-#     userid = frappe.form_dict.get("userid")
-#     employee = frappe.db.get_value("Employee", {
-#         "biometric_id": userid})
-#     if employee:
-#         doc = frappe.get_doc("Employee", employee)
-#         query = """SELECT ro.name, ro.shift FROM `tabRoster` ro, `tabRoster Details` rod
-# 		WHERE rod.parent = ro.name AND ro.from_date <= '%s' AND ro.to_date >= '%s'
-# 		AND rod.employee = '%s' """ % (attendance_date, attendance_date, doc.employee)
-#         roster = frappe.db.sql(query, as_list=1)
-#         if len(roster) < 1:
-#             attendance_id = frappe.db.get_value("Attendance", {
-#                 "employee": employee, "attendance_date": date})
-#             if attendance_id:
-#                 atteirirdance = frappe.get_doc(
-#                     "Attendance", attendance_id)
-#                 out_time = time.strftime("%H:%M:%S", time.gmtime(
-#                     int(frappe.form_dict.get("att_time"))))
-#                 attendance.out_time = out_time
-#                 attendance.db_update()
-#             else:
-#                 attendance = frappe.new_doc("Attendance")
-#                 in_time = time.strftime("%H:%M:%S", time.gmtime(
-#                     int(frappe.form_dict.get("att_time"))))
-#                 attendance.update({
-#                     "employee": employee,
-#                     "employee_name": doc.employee_name,
-#                     "attendance_date": date,
-#                     "status": "Present",
-#                     "in_time": in_time,
-#                     "company": doc.company
-#                 })
-#                 attendance.save(ignore_permissions=True)
-#                 attendance.submit()
-#                 frappe.db.commit()
-#             frappe.response.type = "text"
-#             return "ok"
-#         else:
-#             doc.shift = roster[0][1]
-
-#         shft = frappe.get_doc("Shift Details", doc.shift)
-#         att_date = datetime.strptime(
-#             attendance_date, '%Y-%m-%d %H:%M:%S')
-
-#         if shft.in_out_required:
-
-#             if shft.in_time > shft.out_time:
-#                 # this shows night shift
-#                 if shft.next_day == 1:
-#                     # this shows night shift is starting on previous day
-#                     shft_indate = datetime.combine(
-#                         att_date, datetime.min.time())
-
-#                     shft_outdate = datetime.combine(
-#                         add_days(att_date, -1), datetime.min.time())
-#                 else:
-#                     shft_indate = datetime.combine(
-#                         att_date, datetime.min.time())
-#             else:
-#                 shft_indate = datetime.combine(att_date, datetime.min.time())
-#             shft_intime = shft_indate + timedelta(0, shft.in_time.seconds)
-#             shft_intime_max = shft_intime + \
-#                 timedelta(0, shft.delayed_entry_allowed_time.seconds)
-#             shft_intime_min = shft_intime - \
-#                 timedelta(0, shft.early_entry_allowed_time.seconds)
-#             if shft.next_day == 1:
-#                 attendance_id = frappe.db.get_value("Attendance", {
-#                     "employee": employee, "attendance_date": shft_outdate})
-#                 # return shft_outdate
-#                 if attendance_id:
-#                     attendance = frappe.get_doc("Attendance", attendance_id)
-#                     # return attendance
-#                     if attendance and not attendance.out_time:
-#                         return "hi"
-#                         out_time = time.strftime("%Y-%m-%d %X", time.gmtime(
-#                             int(frappe.form_dict.get("att_time"))))
-#                         attendance.out_time = out_time
-#                         attendance.db_update()
-#                     else:
-#                         if att_date >= shft_intime_min and att_date <= shft_intime_max:
-#                             attendance = frappe.new_doc(
-#                                 "Attendance")
-#                             intime = time.strftime("%Y-%m-%d %X", time.gmtime(
-#                                 int(frappe.form_dict.get("att_time"))))
-#                             attendance.update({
-#                                 "employee": employee,
-#                                 "employee_name": doc.employee_name,
-#                                 "attendance_date": shft_indate,
-#                                 "status": "Present",
-#                                 "in_time": intime,
-#                                 "company": doc.company
-#                             })
-#                             attendance.save(
-#                                 ignore_permissions=True)
-#                             attendance.submit()
-#                             frappe.db.commit()
-#                         else:
-#                             attendance = frappe.new_doc(
-#                                 "Attendance")
-#                             intime = time.strftime("%Y-%m-%d %X", time.gmtime(
-#                                 int(frappe.form_dict.get("att_time"))))
-#                             attendance.update({
-#                                 "employee": employee,
-#                                 "employee_name": doc.employee_name,
-#                                 "attendance_date": shft_indate,
-#                                 "status": "Absent",
-#                                 "in_time": intime,
-#                                 "company": doc.company
-#                             })
-#                             attendance.save(
-#                                 ignore_permissions=True)
-#                             attendance.submit()
-#                             frappe.db.commit()
-#                         frappe.response.type = "text"
-#                         return "ok"
-#                 else:
-#                     if att_date >= shft_intime_min and att_date <= shft_intime_max:
-#                         attendance = frappe.new_doc(
-#                             "Attendance")
-#                         intime = time.strftime("%Y-%m-%d %X", time.gmtime(
-#                             int(frappe.form_dict.get("att_time"))))
-#                         attendance.update({
-#                             "employee": employee,
-#                             "employee_name": doc.employee_name,
-#                             "attendance_date": shft_indate,
-#                             "status": "Present",
-#                             "in_time": intime,
-#                             "company": doc.company
-#                         })
-#                         attendance.save(
-#                             ignore_permissions=True)
-#                         attendance.submit()
-#                         frappe.db.commit()
-#                     else:
-#                         attendance = frappe.new_doc(
-#                             "Attendance")
-#                         intime = time.strftime("%Y-%m-%d %X", time.gmtime(
-#                             int(frappe.form_dict.get("att_time"))))
-#                         attendance.update({
-#                             "employee": employee,
-#                             "employee_name": doc.employee_name,
-#                             "attendance_date": shft_indate,
-#                             "status": "Present",
-#                             "in_time": intime,
-#                             "company": doc.company
-#                         })
-#                         attendance.save(
-#                             ignore_permissions=True)
-#                         attendance.submit()
-#                         frappe.db.commit()
-#                     frappe.response.type = "text"
-#                     return "ok"
-#             else:
-#                 attendance_id = frappe.db.get_value("Attendance", {
-#                     "employee": employee, "attendance_date": shft_indate})
-#                 if attendance_id:
-#                     attendance = frappe.get_doc(
-#                         "Attendance", attendance_id)
-#                     out_time = time.strftime("%H:%M:%S", time.gmtime(
-#                         int(frappe.form_dict.get("att_time"))))
-#                     attendance.out_time = out_time
-#                     attendance.db_update()
-#                 else:
-#                     if att_date >= shft_intime_min and att_date <= shft_intime_max:
-#                         attendance = frappe.new_doc("Attendance")
-#                         in_time = time.strftime("%H:%M:%S", time.gmtime(
-#                             int(frappe.form_dict.get("att_time"))))
-#                         attendance.update({
-#                             "employee": employee,
-#                             "employee_name": doc.employee_name,
-#                             "attendance_date": shft_indate,
-#                             "status": "Present",
-#                             "in_time": in_time,
-#                             "company": doc.company
-#                         })
-#                         attendance.save(ignore_permissions=True)
-#                         attendance.submit()
-#                         frappe.db.commit()
-#                     else:
-#                         attendance = frappe.new_doc("Attendance")
-#                         in_time = time.strftime("%H:%M:%S", time.gmtime(
-#                             int(frappe.form_dict.get("att_time"))))
-#                         attendance.update({
-#                             "employee": employee,
-#                             "employee_name": doc.employee_name,
-#                             "attendance_date": shft_indate,
-#                             "status": "Absent",
-#                             "in_time": in_time,
-#                             "company": doc.company
-#                         })
-#                         attendance.save(ignore_permissions=True)
-#                         attendance.submit()
-#                         frappe.db.commit()
-#             frappe.response.type = "text"
-#             return "ok"
-
-# @frappe.whitelist(allow_guest=True)
-# def update_leave_application():
-#     employees = frappe.get_all('Employee')
-#     for employee in employees:
-#         attendance = frappe.db.get_all('Attendance', fields={'employee', 'attendance_date', 'status'}, filters={
-#             'attendance_date': today(), 'employee': employee.name})
-#         if not attendance:
-#             lap = frappe.new_doc("Leave Application")
-#             lap.leave_type = "Leave Without Pay"
-#             lap.status = "Approved"
-#             lap.from_date = today()
-#             lap.to_date = today()
-#             lap.employee = employee.name
-#             lap.leave_approver = "Administrator"
-#             lap.posting_date = today()
-#             lap.company = frappe.db.get_value(
-#                 "Employee", employee.name, "company")
-#             lap.save(ignore_permissions=True)
-#             lap.submit()
-#             frappe.db.commit()
+def daily_punch_record():
+    from zk import ZK, const
+    conn = None
+    zk = ZK('192.168.1.65', port=4370, timeout=5)
+    try:
+        conn = zk.connect()
+        attendance = conn.get_attendance()
+        curdate = datetime.now().date()
+        for att in attendance:
+            # if att.user_id == '170':
+            date = att.timestamp.date()
+            if date == curdate:
+                mtime = att.timestamp.time()
+                userid = att.user_id
+                employee = frappe.db.get_value("Employee", {
+                    "employee_no": userid, "status": "Active"})
+                if employee:
+                    doc = frappe.get_doc("Employee", employee)
+                    pr_id = frappe.db.get_value("Punch Record", {
+                        "employee": employee, "attendance_date": date})
+                    if pr_id:
+                        pr = frappe.get_doc("Punch Record", pr_id)
+                        pr.append("timetable", {
+                            "punch_time": str(mtime)
+                        })
+                        pr.save(ignore_permissions=True)
+                    else:
+                        pr = frappe.new_doc("Punch Record")
+                        pr.employee = employee
+                        pr.employee_name = doc.employee_name
+                        pr.attendance_date = date
+                        pr.append("timetable", {
+                            "punch_time": mtime
+                        })
+                        pr.insert()
+                        pr.save(ignore_permissions=True)
+    except Exception, e:
+        print "Process terminate : {}".format(e)
+    finally:
+        if conn:
+            conn.disconnect()
